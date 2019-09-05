@@ -51,6 +51,18 @@ setwd("~/GitHub/github-files/Assignment-1")
 
 Load the three data sets, after downloading them from dropbox and saving them in your working directory: \* Demographic data for the participants: <https://www.dropbox.com/s/w15pou9wstgc8fe/demo_train.csv?dl=0> \* Length of utterance data: <https://www.dropbox.com/s/usyauqm37a76of6/LU_train.csv?dl=0> \* Word data: <https://www.dropbox.com/s/8ng1civpl2aux58/token_train.csv?dl=0>
 
+``` r
+?read.csv
+```
+
+    ## starting httpd help server ... done
+
+``` r
+demo_data <- read.csv(file = "demo_train.csv")
+utt_data <- read.csv(file = "LU_train.csv")
+word_data <- read.csv(file = "token_train.csv")
+```
+
 Explore the 3 datasets (e.g. visualize them, summarize them, etc.). You will see that the data is messy, since the psychologist collected the demographic data, the linguist analyzed the length of utterance in May 2014 and the fumbling jack-of-all-trades analyzed the words several months later. In particular: - the same variables might have different names (e.g. participant and visit identifiers) - the same variables might report the values in different ways (e.g. participant and visit IDs) Welcome to real world of messy data :-)
 
 Before being able to combine the data sets we need to make sure the relevant variables have the same names and the same kind of values.
@@ -65,9 +77,25 @@ Tip: look through the chapter on data transformation in R for data science (<htt
 
 Tip: The stringr package is what you need. str\_extract () will allow you to extract only the digit (number) from a string, by using the regular expression \\d.
 
+``` r
+library(pacman)
+p_load(stringr)
+
+word_data$VISIT <- word_data$VISIT %>% str_extract("\\d") %>% as.integer()
+
+utt_data$VISIT <- utt_data$VISIT %>% str_extract("\\d") %>% as.integer()
+#using string extract to rename the visit column into integers
+```
+
 2c. We also need to make a small adjustment to the content of the Child.ID coloumn in the demographic data. Within this column, names that are not abbreviations do not end with "." (i.e. Adam), which is the case in the other two data sets (i.e. Adam.). If The content of the two variables isn't identical the rows will not be merged. A neat way to solve the problem is simply to remove all "." in all datasets.
 
 Tip: stringr is helpful again. Look up str\_replace\_all Tip: You can either have one line of code for each child name that is to be changed (easier, more typing) or specify the pattern that you want to match (more complicated: look up "regular expressions", but less typing)
+
+``` r
+word_data$SUBJ <- word_data$SUBJ %>% str_replace_all("[:punct:]", "")
+utt_data$SUBJ <- utt_data$SUBJ %>% str_replace_all("[:punct:]", "")
+demo_data$Child.ID <- demo_data$Child.ID %>% str_replace_all("[:punct:]", "")
+```
 
 2d. Now that the nitty gritty details of the different data sets are fixed, we want to make a subset of each data set only containig the variables that we wish to use in the final data set. For this we use the tidyverse package dplyr, which contains the function select().
 
@@ -78,17 +106,107 @@ Most variables should make sense, here the less intuitive ones. \* ADOS (Autism 
 
 Feel free to rename the variables into something you can remember (i.e. nonVerbalIQ, verbalIQ)
 
+``` r
+#selecting the needed columns from each data set, making new dataframes with just these columns
+demo_data_selected <- demo_data %>% select(Child.ID, Visit, Diagnosis, Ethnicity, Gender, Age, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+word_data_selected <- word_data %>% select(SUBJ, VISIT, types_MOT, types_CHI, tokens_MOT, tokens_CHI)
+utt_data_selected <- utt_data %>% select(SUBJ, VISIT, MOT_MLU, CHI_MLU)
+
+#checking that they are all dataframes
+class(demo_data_selected)
+```
+
+    ## [1] "data.frame"
+
+``` r
+class(word_data_selected)
+```
+
+    ## [1] "data.frame"
+
+``` r
+class(utt_data_selected)
+```
+
+    ## [1] "data.frame"
+
+``` r
+#chanding the name of the column "Child.ID" into "SUBJ" and "Visit" into "VISIT"
+colnames(demo_data_selected)[1] <- "SUBJ"
+colnames(demo_data_selected)[2] <- "VISIT"
+
+#another longer way to do the same thing:
+#names(demo_data_selected)[names(demo_data_selected) == "Child.ID"] <- "SUBJ"
+#names(demo_data_selected)[names(demo_data_selected) == "Visit"] <- "VISIT"
+```
+
 2e. Finally we are ready to merge all the data sets into just one.
 
 Some things to pay attention to: \* make sure to check that the merge has included all relevant data (e.g. by comparing the number of rows) \* make sure to understand whether (and if so why) there are NAs in the dataset (e.g. some measures were not taken at all visits, some recordings were lost or permission to use was withdrawn)
 
-2f. Only using clinical measures from Visit 1 In order for our models to be useful, we want to miimize the need to actually test children as they develop. In other words, we would like to be able to understand and predict the children's linguistic development after only having tested them once. Therefore we need to make sure that our ADOS, MullenRaw, ExpressiveLangRaw and Socialization variables are reporting (for all visits) only the scores from visit 1.
+``` r
+merge_word_utt <- merge(word_data_selected, utt_data_selected)
+merge_all_data <- merge(merge_word_utt, demo_data_selected)
+
+#checking how many subject had less visits than 6
+#for the demo dataframe (the bad boi)
+group_demo <- demo_data_selected %>% group_by(SUBJ) %>% summarise(VISIT=n())
+filter_demo <- group_demo %>% filter(group_demo$VISIT<6)
+
+#for the word dataframe (which will be the same as the utt dataframe)
+group_word <- word_data_selected %>% group_by(SUBJ) %>% summarise(VISIT=n())
+filter_word <- group_word %>% filter(group_word$VISIT<6)
+
+#for the final merged dataframe - which has only the subjects that are the same for all three dataframes
+group_all <- merge_all_data %>% group_by(SUBJ) %>% summarise(VISIT=n())
+filter_all <- group_all %>%  filter(group_all$VISIT<6)
+
+#cbind_word_utt <- cbind(word_data_selected, utt_data_selected)
+#cbind_all <- cbind(cbind_word_utt, demo_data_selected)
+```
+
+2f. Only using clinical measures from Visit 1 In order for our models to be useful, we want to minimize the need to actually test children as they develop. In other words, we would like to be able to understand and predict the children's linguistic development after only having tested them once. Therefore we need to make sure that our ADOS, MullenRaw, ExpressiveLangRaw and Socialization variables are reporting (for all visits) only the scores from visit 1.
 
 A possible way to do so: \* create a new dataset with only visit 1, child id and the 4 relevant clinical variables to be merged with the old dataset \* rename the clinical variables (e.g. ADOS to ADOS1) and remove the visit (so that the new clinical variables are reported for all 6 visits) \* merge the new dataset with the old
+
+``` r
+#new dataframe with only visit 1 data and from these 4 columns: ADOS, MullenRaw, ExpressiveLangRaw, Socialization (plus subject name)
+new_df <- merge_all_data %>% filter(VISIT==1) %>% select(SUBJ, ADOS, MullenRaw, ExpressiveLangRaw, Socialization)
+
+#renaming column names
+colnames(new_df)[2] <- "ADOS1"
+colnames(new_df)[3] <- "MullenRaw1"
+colnames(new_df)[4] <- "ExpressiveLangRaw1"
+colnames(new_df)[5] <- "Socialization1"
+
+#merge it with the old one
+new_merge <- merge(new_df, merge_all_data)
+```
 
 2g. Final touches
 
 Now we want to \* anonymize our participants (they are real children!). \* make sure the variables have sensible values. E.g. right now gender is marked 1 and 2, but in two weeks you will not be able to remember, which gender were connected to which number, so change the values from 1 and 2 to F and M in the gender variable. For the same reason, you should also change the values of Diagnosis from A and B to ASD (autism spectrum disorder) and TD (typically developing). Tip: Try taking a look at ifelse(), or google "how to rename levels in R". \* Save the data set using into a csv file. Hint: look into write.csv()
+
+``` r
+#making gender into numerical instead of integer to be able to change it into M and F
+new_merge$Gender <- as.numeric(new_merge$Gender)
+
+new_merge$Gender[new_merge$Gender=="1"] <- "M"
+new_merge$Gender[new_merge$Gender=="2"] <- "F"
+
+#making the subject names (characters) into numbers. First change the string into factor
+new_merge$SUBJ <- as.factor(new_merge$SUBJ)
+
+levels(new_merge$SUBJ)[1:61] <- 1:61
+
+#making it back into integer
+new_merge$SUBJ <- as.integer(new_merge$SUBJ)
+
+#A = 1 = ASD, B = 2 = TD
+new_merge$Diagnosis <- as.numeric(new_merge$Diagnosis)
+new_merge$Diagnosis[new_merge$Diagnosis=="1"] <- "ASD"
+new_merge$Diagnosis[new_merge$Diagnosis=="2"] <- "TD"
+```
 
 1.  BONUS QUESTIONS The aim of this last section is to make sure you are fully fluent in the tidyverse. Here's the link to a very helpful book, which explains each function: <http://r4ds.had.co.nz/index.html>
 
