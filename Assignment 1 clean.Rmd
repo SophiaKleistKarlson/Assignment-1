@@ -7,59 +7,6 @@ output: html_document
 
 # Assignment 1, Language development in Autism Spectrum Disorder (ASD) - Brushing up your code skills
 
-In this first part of the assignment we will brush up your programming skills, and make you familiar with the data sets you will be analysing for the next parts of the assignment.
-
-In this warm-up assignment you will:
-1) Create a Github (or gitlab) account, link it to your RStudio, and create a new repository/project
-2) Use small nifty lines of code to transform several data sets into just one. The final data set will contain only the variables that are needed for the analysis in the next parts of the assignment
-3) Warm up your tidyverse skills (especially the sub-packages stringr and dplyr), which you will find handy for later assignments.
-
-N.B: Usually you'll also have to doc/pdf with a text. Not for Assignment 1.
-
-## Learning objectives:
-
-- Become comfortable with tidyverse (and R in general)
-- Test out the git integration with RStudio
-- Build expertise in data wrangling (which will be used in future assignments)
-
-
-## 0. First an introduction on the data
-
-# Language development in Autism Spectrum Disorder (ASD)
-
-Reference to the study: https://www.ncbi.nlm.nih.gov/pubmed/30396129
-
-Background: Autism Spectrum Disorder (ASD) is often related to language impairment, and language impairment strongly affects the patients ability to function socially (maintaining a social network, thriving at work, etc.). It is therefore crucial to understand how language abilities develop in children with ASD, and which factors affect them (to figure out e.g. how a child will develop in the future and whether there is a need for language therapy).
-However, language impairment is always quantified by relying on the parent, teacher or clinician subjective judgment of the child, and measured very sparcely (e.g. at 3 years of age and again at 6). 
-
-In this study we videotaped circa 30 kids with ASD and circa 30 comparison kids (matched by linguistic performance at visit 1) for ca. 30 minutes of naturalistic interactions with a parent. We repeated the data collection 6 times per kid, with 4 months between each visit. We transcribed the data and counted: 
-i) the amount of words that each kid uses in each video. Same for the parent.
-ii) the amount of unique words that each kid uses in each video. Same for the parent.
-iii) the amount of morphemes per utterance (Mean Length of Utterance) displayed by each child in each video. Same for the parent. 
-
-Different researchers involved in the project provide you with different datasets: 
-1) demographic and clinical data about the children (recorded by a clinical psychologist)
-2) length of utterance data (calculated by a linguist)
-3) amount of unique and total words used (calculated by a fumbling jack-of-all-trade, let's call him RF)
-
-Your job in this assignment is to double check the data and make sure that it is ready for the analysis proper (Assignment 2), in which we will try to understand how the children's language develops as they grow as a function of cognitive and social factors and which are the "cues" suggesting a likely future language impairment.
-
-## 1. Let's get started on GitHub
-
-In te ahssignments you will be asked to upload your code on Github and the GitHub repositories will be part of the portfolio, therefore all students must make an account and link it to their RStudio (you'll thank us later for this!).
-
-Follow the link to one of the tutorials indicated in the syllabus: 
-* Recommended: https://happygitwithr.com/
-*	Alternative (if the previous doesn't work): https://support.rstudio.com/hc/en-us/articles/200532077-Version-Control-with-Git-and-SVN
-*	Alternative (if the previous doesn't work): https://docs.google.com/document/d/1WvApy4ayQcZaLRpD6bvAqhWncUaPmmRimT016-PrLBk/mobilebasic
-
-N.B. Create a GitHub repository for the Assignment 1 and link it to a project on your RStudio.
-
-## 2. Now let's take dirty dirty data sets and make them into a tidy one
-
-If you're not in a project in Rstudio, make sure to set your working directory here.
-If you created an RStudio project, then your working directory (the directory with your data and code for these assignments) is the project directory.
-
 ```{r}
 setwd("~/GitHub/github-files/Assignment-1")
 pacman::p_load(tidyverse,janitor, stringr, plyr)
@@ -90,6 +37,25 @@ In particular:
 - the same variables might have different names (e.g. participant and visit identifiers)
 - the same variables might report the values in different ways (e.g. participant and visit IDs)
 Welcome to real world of messy data :-)
+
+```{r}
+summary(demog_train)
+
+summary(LU_train)
+
+summary(token_train)
+
+# > In the Word Data, participants are called SUBJ - the observations are characters. The visits are called VISIT - and the observations are characters.
+
+# > in the Length of Utterance, participants are called SUBJ . the observations are charactrs. The visits are called VISIT - and the observations are characters.
+
+# > In the demography data, participants are called Child.ID - the observations are characters. the visits are called Visit, and the observations are integers. Also, the ethnicities are weird. 
+
+# > Some participants are called by their names, others are given participant names.
+# > Some of the values for the visits have capitalised letters, some have not.
+```
+
+
 
 Before being able to combine the data sets we need to make sure the relevant variables have the same names and the same kind of values.
 
