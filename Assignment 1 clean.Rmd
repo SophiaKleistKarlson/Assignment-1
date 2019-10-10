@@ -1,7 +1,7 @@
 ---
-title: "Assignment 1 - Data Cleaning - Instructions"
-author: "[FILL IN YOUR NAME]"
-date: "[FILL IN THE DATE]"
+title: "Code for assignment 1"
+author: "Dora, Rebecca, Jana, Asger, Sophia"
+date: "10/10/19"
 output: html_document
 ---
 
